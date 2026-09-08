@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trama — Retroalimentación de testing</title>
+<style>
+  :root {
+    --bg: #F4F3EF;
+    --surface: #FFFFFF;
+    --border: #DDD9D0;
+    --text: #201D18;
+    --text-secondary: #6B675E;
+    --accent: #1F4B43;
+    --accent-light: #E4EEEC;
+    --sev-baja: #4C7A3B;
+    --sev-media: #A6791F;
+    --sev-alta: #B0521E;
+    --sev-critica: #A02F27;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+  header {
+    margin-bottom: 24px;
+  }
+  .eyebrow {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+    margin: 0 0 6px;
+  }
+  h1 {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .lead {
+    color: var(--text-secondary);
+    font-size: 15px;
+    margin: 0;
+  }
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    margin: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  nav.tabs button {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 10px 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  nav.tabs button.active {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 16px 0 6px;
+  }
+  label:first-child { margin-top: 0; }
+  input[type="text"], textarea, select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .sev-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .sev-btn {
+    padding: 8px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: center;
+  }
+  .sev-btn.selected[data-sev="Baja"] { background: var(--sev-baja); border-color: var(--sev-baja); color: #fff; }
+  .sev-btn.selected[data-sev="Media"] { background: var(--sev-media); border-color: var(--sev-media); color: #fff; }
+  .sev-btn.selected[data-sev="Alta"] { background: var(--sev-alta); border-color: var(--sev-alta); color: #fff; }
+  .sev-btn.selected[data-sev="Crítica"] { background: var(--sev-critica); border-color: var(--sev-critica); color: #fff; }
+  .error-msg {
+    color: var(--sev-critica);
+    font-size: 13px;
+    margin-top: 6px;
+    display: none;
+  }
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .file-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .file-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .preview-thumb {
+    margin-top: 10px;
+    max-width: 100%;
+    max-height: 180px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: none;
+  }
+  .remove-img {
+    display: none;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--sev-critica);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  .submit-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+  }
+  .submit-btn:active { transform: scale(0.99); }
+  .submit-btn:disabled { opacity: 0.6; cursor: default; }
+  .success {
+    display: none;
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .entry {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .entry-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+  .entry-name {
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .entry-date {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    color: #fff;
+  }
+  .badge.Baja { background: var(--sev-baja); }
+  .badge.Media { background: var(--sev-media); }
+  .badge.Alta { background: var(--sev-alta); }
+  .badge.Crítica { background: var(--sev-critica); }
+  .entry p { margin: 4px 0; font-size: 13px; }
+  .entry .field-label { color: var(--text-secondary); font-weight: 600; }
+  .entry img.attached {
+    margin-top: 8px;
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: zoom-in;
+  }
+  .empty-state {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    padding: 40px 0;
+  }
+  .op-q {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 16px 0 6px;
+  }
+  .op-q:first-child { margin-top: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Trama — QA</p>
+    <h1>Ayúdanos a probar Trama</h1>
+    <p class="lead">Este formulario le llega directo a Daniel, sin necesidad de archivos ni correos.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-tab="bug">Reportar bug</button>
+    <button data-tab="opinion">Opinión general</button>
+    <button data-tab="ver">Ver reportes</button>
+  </nav>
+
+  <section class="panel active" id="panel-bug">
+    <div class="card">
+      <label for="bug-nombre">Tu nombre</label>
+      <input type="text" id="bug-nombre" placeholder="Ana Torres" />
+
+      <label for="bug-seccion">Sección o función que probabas</label>
+      <input type="text" id="bug-seccion" placeholder="Exportar a PDF" />
+
+      <label for="bug-esperado">Qué esperabas que pasara</label>
+      <textarea id="bug-esperado" placeholder="Que el margen del diálogo se viera como en el editor"></textarea>
+
+      <label for="bug-real">Qué pasó en realidad</label>
+      <textarea id="bug-real" placeholder="El margen izquierdo del diálogo salió más angosto"></textarea>
+
+      <label>Qué tan grave fue</label>
+      <div class="sev-group" id="sev-group">
+        <button type="button" class="sev-btn" data-sev="Baja">Baja</button>
+        <button type="button" class="sev-btn" data-sev="Media">Media</button>
+        <button type="button" class="sev-btn" data-sev="Alta">Alta</button>
+        <button type="button" class="sev-btn" data-sev="Crítica">Crítica</button>
+      </div>
+
+      <label>Captura de pantalla del error (opcional)</label>
+      <div class="file-row">
+        <button type="button" class="file-btn" id="file-trigger">Adjuntar imagen</button>
+        <span class="file-hint" id="file-hint">JPG o PNG, se comprime automáticamente</span>
+      </div>
+      <input type="file" id="bug-imagen" accept="image/*" style="display:none;" />
+      <img class="preview-thumb" id="preview-thumb" alt="Vista previa de la imagen adjunta" />
+      <button type="button" class="remove-img" id="remove-img">Quitar imagen</button>
+
+      <p class="error-msg" id="bug-error">Escribe tu nombre y cuéntanos qué pasó antes de enviar.</p>
+      <button class="submit-btn" id="bug-submit">Enviar reporte</button>
+      <p class="success" id="bug-success">Reporte enviado. ¡Gracias!</p>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-opinion">
+    <div class="card">
+      <label for="op-nombre">Tu nombre</label>
+      <input type="text" id="op-nombre" placeholder="Ana Torres" />
+
+      <p class="op-q">¿Del 1 al 10, qué tan fácil fue empezar a escribir sin ayuda?</p>
+      <input type="text" id="op-facilidad" placeholder="8" />
+
+      <p class="op-q">¿Qué fue lo más frustrante?</p>
+      <textarea id="op-frustrante"></textarea>
+
+      <p class="op-q">¿Qué fue lo que más te gustó?</p>
+      <textarea id="op-gusto"></textarea>
+
+      <p class="op-q">¿Usarías Trama para escribir un guion completo tal como está hoy?</p>
+      <textarea id="op-usaria" placeholder="Sí / No, y por qué"></textarea>
+
+      <p class="error-msg" id="op-error">Escribe al menos tu nombre antes de enviar.</p>
+      <button class="submit-btn" id="op-submit">Enviar opinión</button>
+      <p class="success" id="op-success">Opinión enviada. ¡Gracias!</p>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-ver">
+    <div id="ver-bugs"></div>
+    <div id="ver-opiniones" style="margin-top: 24px;"></div>
+  </section>
+</div>
+
+<script>
+  const tabs = document.querySelectorAll('nav.tabs button');
+  const panels = {
+    bug: document.getElementById('panel-bug'),
+    opinion: document.getElementById('panel-opinion'),
+    ver: document.getElementById('panel-ver'),
+  };
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Object.values(panels).forEach(p => p.classList.remove('active'));
+      panels[btn.dataset.tab].classList.add('active');
+      if (btn.dataset.tab === 'ver') renderReportes();
+    });
+  });
+
+  let selectedSev = null;
+  document.querySelectorAll('.sev-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.sev-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedSev = btn.dataset.sev;
+    });
+  });
+
+  // --- Manejo de imagen adjunta ---
+  let attachedImage = null; // dataURL comprimido, o null
+  const fileInput = document.getElementById('bug-imagen');
+  const fileTrigger = document.getElementById('file-trigger');
+  const fileHint = document.getElementById('file-hint');
+  const previewThumb = document.getElementById('preview-thumb');
+  const removeImgBtn = document.getElementById('remove-img');
+
+  fileTrigger.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    fileHint.textContent = 'Comprimiendo imagen…';
+    compressImage(file, 900, 0.75).then(dataUrl => {
+      attachedImage = dataUrl;
+      previewThumb.src = dataUrl;
+      previewThumb.style.display = 'block';
+      removeImgBtn.style.display = 'inline-block';
+      const kb = Math.round((dataUrl.length * 0.75) / 1024);
+      fileHint.textContent = 'Imagen lista (~' + kb + ' KB)';
+    }).catch(() => {
+      fileHint.textContent = 'No se pudo procesar la imagen. Intenta con otra.';
+    });
+  });
+
+  removeImgBtn.addEventListener('click', () => {
+    attachedImage = null;
+    fileInput.value = '';
+    previewThumb.style.display = 'none';
+    removeImgBtn.style.display = 'none';
+    fileHint.textContent = 'JPG o PNG, se comprime automáticamente';
+  });
+
+  function compressImage(file, maxWidth, quality) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxWidth / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // --- Almacenamiento: una llave por reporte ---
+  function newId() {
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  async function saveEntry(prefix, entry) {
+    const key = prefix + ':' + newId();
+    await window.storage.set(key, JSON.stringify(entry), true);
+  }
+
+  async function loadEntries(prefix) {
+    try {
+      const listRes = await window.storage.list(prefix + ':', true);
+      const keys = (listRes && listRes.keys) || [];
+      const entries = [];
+      for (const key of keys) {
+        try {
+          const res = await window.storage.get(key, true);
+          if (res && res.value) entries.push(JSON.parse(res.value));
+        } catch (e) { /* skip entrada dañada */ }
+      }
+      return entries;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  document.getElementById('bug-submit').addEventListener('click', async () => {
+    const nombre = document.getElementById('bug-nombre').value.trim();
+    const seccion = document.getElementById('bug-seccion').value.trim();
+    const esperado = document.getElementById('bug-esperado').value.trim();
+    const real = document.getElementById('bug-real').value.trim();
+    const errorEl = document.getElementById('bug-error');
+    const successEl = document.getElementById('bug-success');
+
+    if (!nombre || !real) {
+      errorEl.textContent = 'Escribe tu nombre y cuéntanos qué pasó antes de enviar.';
+      errorEl.style.display = 'block';
+      successEl.style.display = 'none';
+      return;
+    }
+    errorEl.style.display = 'none';
+
+    const entry = {
+      nombre,
+      seccion: seccion || '(no especificada)',
+      esperado: esperado || '(no especificado)',
+      real,
+      severidad: selectedSev || 'Media',
+      imagen: attachedImage || null,
+      fecha: new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }),
+    };
+
+    const btn = document.getElementById('bug-submit');
+    btn.disabled = true;
+    try {
+      await saveEntry('bug', entry);
+      successEl.style.display = 'block';
+      document.getElementById('bug-seccion').value = '';
+      document.getElementById('bug-esperado').value = '';
+      document.getElementById('bug-real').value = '';
+      document.querySelectorAll('.sev-btn').forEach(b => b.classList.remove('selected'));
+      selectedSev = null;
+      removeImgBtn.click();
+    } catch (e) {
+      errorEl.textContent = 'No se pudo enviar el reporte. Intenta de nuevo, o sin la imagen si el problema persiste.';
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('op-submit').addEventListener('click', async () => {
+    const nombre = document.getElementById('op-nombre').value.trim();
+    const errorEl = document.getElementById('op-error');
+    const successEl = document.getElementById('op-success');
+
+    if (!nombre) {
+      errorEl.style.display = 'block';
+      successEl.style.display = 'none';
+      return;
+    }
+    errorEl.style.display = 'none';
+
+    const entry = {
+      nombre,
+      facilidad: document.getElementById('op-facilidad').value.trim() || '(sin responder)',
+      frustrante: document.getElementById('op-frustrante').value.trim() || '(sin responder)',
+      gusto: document.getElementById('op-gusto').value.trim() || '(sin responder)',
+      usaria: document.getElementById('op-usaria').value.trim() || '(sin responder)',
+      fecha: new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }),
+    };
+
+    const btn = document.getElementById('op-submit');
+    btn.disabled = true;
+    try {
+      await saveEntry('op', entry);
+      successEl.style.display = 'block';
+      document.getElementById('op-facilidad').value = '';
+      document.getElementById('op-frustrante').value = '';
+      document.getElementById('op-gusto').value = '';
+      document.getElementById('op-usaria').value = '';
+    } catch (e) {
+      errorEl.textContent = 'No se pudo enviar la opinión. Intenta de nuevo.';
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  async function renderReportes() {
+    const bugsWrap = document.getElementById('ver-bugs');
+    const opsWrap = document.getElementById('ver-opiniones');
+    bugsWrap.innerHTML = '<p class="op-q">Bugs reportados</p><div class="empty-state">Cargando…</div>';
+    opsWrap.innerHTML = '<p class="op-q">Opiniones generales</p>';
+
+    const [bugs, ops] = await Promise.all([loadEntries('bug'), loadEntries('op')]);
+
+    bugs.sort((a, b) => (a.fecha > b.fecha ? -1 : 1));
+    ops.sort((a, b) => (a.fecha > b.fecha ? -1 : 1));
+
+    bugsWrap.innerHTML = '<p class="op-q">Bugs reportados</p>';
+    if (bugs.length === 0) {
+      bugsWrap.innerHTML += '<div class="empty-state">Todavía no hay bugs reportados.</div>';
+    } else {
+      bugs.forEach(b => {
+        const imgHtml = b.imagen ? `<img class="attached" src="${b.imagen}" alt="Captura del error" onclick="window.open(this.src, '_blank')" />` : '';
+        bugsWrap.innerHTML += `
+          <div class="entry">
+            <div class="entry-top">
+              <span class="entry-name">${escapeHtml(b.nombre)}</span>
+              <span class="badge ${escapeHtml(b.severidad)}">${escapeHtml(b.severidad)}</span>
+            </div>
+            <p class="entry-date">${escapeHtml(b.fecha)} · ${escapeHtml(b.seccion)}</p>
+            <p><span class="field-label">Esperaba:</span> ${escapeHtml(b.esperado)}</p>
+            <p><span class="field-label">Pasó:</span> ${escapeHtml(b.real)}</p>
+            ${imgHtml}
+          </div>`;
+      });
+    }
+
+    if (ops.length === 0) {
+      opsWrap.innerHTML += '<div class="empty-state">Todavía no hay opiniones registradas.</div>';
+    } else {
+      ops.forEach(o => {
+        opsWrap.innerHTML += `
+          <div class="entry">
+            <div class="entry-top">
+              <span class="entry-name">${escapeHtml(o.nombre)}</span>
+              <span class="entry-date">${escapeHtml(o.fecha)}</span>
+            </div>
+            <p><span class="field-label">Facilidad (1-10):</span> ${escapeHtml(o.facilidad)}</p>
+            <p><span class="field-label">Frustrante:</span> ${escapeHtml(o.frustrante)}</p>
+            <p><span class="field-label">Le gustó:</span> ${escapeHtml(o.gusto)}</p>
+            <p><span class="field-label">¿Lo usaría?:</span> ${escapeHtml(o.usaria)}</p>
+          </div>`;
+      });
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>
